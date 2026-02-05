@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HYPER PORTFOLIO // BRUTAL MODE</title>
+    <script src="https://unpkg.com/three@0.157.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/@studio-freight/lenis@1.0.33/dist/lenis.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Three.js Canvas -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- OVERLAYS -->
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    <div class="noise"></div>
+
+    <!-- HUD -->
+    <div class="hud">
+        <div class="hud-top">
+            <span>SYS.READY</span>
+            <div class="hud-line"></div>
+            <span>FPS: <strong id="fps">60</strong></span>
+        </div>
+        <div class="center-nav">
+            SCROLL VELOCITY // <strong id="vel-readout">0.00</strong>
+        </div>
+        <div class="hud-bottom">
+            <span>COORD: <strong id="coord">000.000</strong></span>
+            <div class="hud-line"></div>
+            <span>VER 2.0.4 [BETA]</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-glitch" data-text="PORTFOLIO">PORTFOLIO</div>
+            <h1 class="hero-title">
+                <span class="hero-line">CREATIVE</span>
+                <span class="hero-line">DEVELOPER</span>
+            </h1>
+            <p class="hero-subtitle">BUILDING DIGITAL EXPERIENCES // SYSTEM READY</p>
+        </section>
+
+        <!-- Spacer -->
+        <div class="spacer"></div>
+
+        <!-- Projects Section -->
+        <section class="projects">
+            <div class="section-header">
+                <span class="section-id">SEC-001</span>
+                <h2 class="section-title">FEATURED WORK</h2>
+                <div class="section-line"></div>
+            </div>
+
+            <!-- Project 1 -->
+            <div class="project-card" data-project="1">
+                <div class="card-corner corner-tl"></div>
+                <div class="card-corner corner-tr"></div>
+                <div class="card-corner corner-bl"></div>
+                <div class="card-corner corner-br"></div>
+
+                <div class="card-header">
+                    <span class="card-id">PROJECT-001</span>
+                    <span class="card-status">ACTIVE</span>
+                </div>
+
+                <h3 class="card-title">NEURAL INTERFACE</h3>
+                <p class="card-description">
+                    Advanced AI-powered web application with real-time data visualization
+                    and predictive analytics. Built with modern frameworks and cutting-edge ML models.
+                </p>
+
+                <div class="card-tags">
+                    <span class="tag">THREE.JS</span>
+                    <span class="tag">REACT</span>
+                    <span class="tag">AI/ML</span>
+                </div>
+
+                <div class="card-footer">
+                    <button class="glass-btn" onclick="viewProject(1)">
+                        <span class="btn-text">VIEW WORK</span>
+                        <span class="btn-icon">→</span>
+                    </button>
+                    <div class="card-meta">
+                        <span>2026</span>
+                        <span>DEPLOYED</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project 2 -->
+            <div class="project-card" data-project="2">
+                <div class="card-corner corner-tl"></div>
+                <div class="card-corner corner-tr"></div>
+                <div class="card-corner corner-bl"></div>
+                <div class="card-corner corner-br"></div>
+
+                <div class="card-header">
+                    <span class="card-id">PROJECT-002</span>
+                    <span class="card-status">ACTIVE</span>
+                </div>
+
+                <h3 class="card-title">CYBER COMMERCE</h3>
+                <p class="card-description">
+                    Next-generation e-commerce platform with immersive 3D product previews,
+                    blockchain integration, and seamless payment processing.
+                </p>
+
+                <div class="card-tags">
+                    <span class="tag">WEBGL</span>
+                    <span class="tag">NODE.JS</span>
+                    <span class="tag">WEB3</span>
+                </div>
+
+                <div class="card-footer">
+                    <button class="glass-btn" onclick="viewProject(2)">
+                        <span class="btn-text">VIEW WORK</span>
+                        <span class="btn-icon">→</span>
+                    </button>
+                    <div class="card-meta">
+                        <span>2025</span>
+                        <span>PRODUCTION</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project 3 -->
+            <div class="project-card" data-project="3">
+                <div class="card-corner corner-tl"></div>
+                <div class="card-corner corner-tr"></div>
+                <div class="card-corner corner-bl"></div>
+                <div class="card-corner corner-br"></div>
+
+                <div class="card-header">
+                    <span class="card-id">PROJECT-003</span>
+                    <span class="card-status">BETA</span>
+                </div>
+
+                <h3 class="card-title">QUANTUM DASHBOARD</h3>
+                <p class="card-description">
+                    Real-time monitoring system with advanced data aggregation,
+                    custom visualizations, and intelligent alerting mechanisms.
+                </p>
+
+                <div class="card-tags">
+                    <span class="tag">D3.JS</span>
+                    <span class="tag">WEBSOCKET</span>
+                    <span class="tag">ANALYTICS</span>
+                </div>
+
+                <div class="card-footer">
+                    <button class="glass-btn" onclick="viewProject(3)">
+                        <span class="btn-text">VIEW WORK</span>
+                        <span class="btn-icon">→</span>
+                    </button>
+                    <div class="card-meta">
+                        <span>2025</span>
+                        <span>TESTING</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <section class="footer">
+            <div class="footer-content">
+                <div class="footer-glitch" data-text="END_TRANSMISSION">END_TRANSMISSION</div>
+                <p class="footer-text">SYSTEM.SHUTDOWN // AWAITING NEXT COMMAND</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
