@@ -374,19 +374,14 @@ const state = {
 function updateUI(index) {
   const project = projects[index];
 
-  document.getElementById('project-id').textContent = project.id;
-  document.getElementById('project-status').textContent = project.status;
-  document.getElementById('project-title').textContent = project.title;
-  document.getElementById('project-title').setAttribute('data-text', project.title);
-  document.getElementById('project-description').textContent = project.description;
+  const titleEl = document.getElementById('project-title');
+  titleEl.textContent = project.title;
+  titleEl.setAttribute('data-text', project.title);
   document.getElementById('project-link').href = project.url;
-
-  const tagsContainer = document.getElementById('project-tags');
-  tagsContainer.innerHTML = project.tags.map(tag =>
-    `<span class="tag">${tag}</span>`
-  ).join('');
-
   document.getElementById('current-num').textContent = String(index + 1).padStart(2, '0');
+
+  // Reset text transform
+  titleEl.style.transform = 'scale(1) translateZ(0)';
 }
 
 // =================================================================
@@ -415,6 +410,10 @@ function goToSlide(newIndex) {
   // Determine direction
   state.direction = newIndex > state.currentIndex ? 1 : -1;
   transitionMaterial.uniforms.uDirection.value = state.direction;
+
+  // Animate title 3D zoom
+  const titleEl = document.getElementById('project-title');
+  titleEl.style.transform = 'scale(1.5) translateZ(200px)';
 }
 
 function nextSlide() {
@@ -439,6 +438,26 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') nextSlide();
   if (e.key === 'ArrowLeft') prevSlide();
 });
+
+// Mouse wheel navigation
+let scrollTimeout;
+let lastScrollTime = 0;
+
+window.addEventListener('wheel', (e) => {
+  if (state.isTransitioning) return;
+
+  const now = Date.now();
+  if (now - lastScrollTime < 800) return; // Debounce
+
+  if (Math.abs(e.deltaY) > 10) {
+    if (e.deltaY > 0) {
+      nextSlide();
+    } else {
+      prevSlide();
+    }
+    lastScrollTime = now;
+  }
+}, { passive: true });
 
 // Auto advance (optional)
 let autoAdvanceInterval = setInterval(nextSlide, 8000);
@@ -504,6 +523,21 @@ function animate(time) {
     }
 
     transitionMaterial.uniforms.uProgress.value = state.transitionProgress;
+
+    // Animate title with 3D zoom
+    const titleEl = document.getElementById('project-title');
+    const progress = state.transitionProgress;
+
+    // Zoom in first half, zoom out second half
+    const scale = progress < 0.5
+      ? 1 + (progress * 2) * 0.5  // 1 to 1.5
+      : 1.5 - ((progress - 0.5) * 2) * 0.5; // 1.5 to 1
+
+    const translateZ = progress < 0.5
+      ? (progress * 2) * 200  // 0 to 200
+      : 200 - ((progress - 0.5) * 2) * 200; // 200 to 0
+
+    titleEl.style.transform = `scale(${scale}) translateZ(${translateZ}px)`;
   } else {
     // Show current slide
     if (!transitionMaterial.uniforms.uFrom.value) {
