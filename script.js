@@ -15,7 +15,7 @@ const projects = [
   {
     id: 'PROJECT-002',
     status: 'LIVE',
-    title: 'NEWTON\'S BOUNCE',
+    title: 'BOUNCE 詩',
     description: 'Interactive physics simulation game with WebGL rendering, realistic particle dynamics, and engaging gameplay mechanics.',
     tags: ['WEBGL', 'PHYSICS', 'GAME'],
     url: 'https://newtonsbounce.netlify.app',
