@@ -378,19 +378,21 @@ body {
   left: clamp(28px, 5vw, 72px);
   bottom: clamp(28px, 5vh, 60px);
   font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 3px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
   color: rgba(255, 255, 255, 0.5);
   pointer-events: none;
 }
 
 #slide-counter .divider {
   color: var(--dim);
-  margin: 0 4px;
+  margin: 0 8px;
 }
 
 #current-num {
   color: var(--accent);
+  font-size: 28px;
 }
 
 /* --- RESPONSIVE --- */
@@ -448,6 +450,11 @@ body {
   #slide-counter {
     left: 20px;
     bottom: 36px;
+    font-size: 18px;
+  }
+
+  #current-num {
+    font-size: 20px;
   }
 }
 

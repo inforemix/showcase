@@ -535,6 +535,10 @@ function animate(time) {
       state.isTransitioning = false;
       state.currentIndex = state.nextIndex;
       updateUI(state.currentIndex);
+
+      // Set current texture after transition completes
+      transitionMaterial.uniforms.uFrom.value = textures[state.currentIndex];
+      transitionMaterial.uniforms.uTo.value = textures[state.currentIndex];
     }
 
     transitionMaterial.uniforms.uProgress.value = state.transitionProgress;
@@ -554,8 +558,9 @@ function animate(time) {
 
     titleEl.style.transform = `scale(${scale}) translateZ(${translateZ}px)`;
   } else {
-    // Show current slide
-    if (!transitionMaterial.uniforms.uFrom.value) {
+    // Ensure current slide texture is shown when not transitioning
+    if (!transitionMaterial.uniforms.uFrom.value ||
+        transitionMaterial.uniforms.uFrom.value !== textures[state.currentIndex]) {
       transitionMaterial.uniforms.uFrom.value = textures[state.currentIndex];
       transitionMaterial.uniforms.uTo.value = textures[state.currentIndex];
     }
