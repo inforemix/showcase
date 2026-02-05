@@ -314,7 +314,12 @@ const textures = {};
 
 function loadTextures() {
   projects.forEach((project, index) => {
-    textures[index] = textureLoader.load(project.image);
+    const texture = textureLoader.load(project.image, (tex) => {
+      // Update texture settings for better quality
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+    });
+    textures[index] = texture;
   });
 }
 
@@ -324,7 +329,11 @@ loadTextures();
 //  TRANSITION PLANE
 // =================================================================
 
-const geometry = new THREE.PlaneGeometry(4, 4);
+// Calculate plane size to cover viewport
+const aspect = window.innerWidth / window.innerHeight;
+const planeHeight = 4;
+const planeWidth = planeHeight * aspect;
+const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
 
 const vertexShader = /* glsl */`
   varying vec2 vUv;
@@ -476,6 +485,12 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   transitionMaterial.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+
+  // Update plane geometry for new aspect ratio
+  const newAspect = window.innerWidth / window.innerHeight;
+  const newWidth = planeHeight * newAspect;
+  plane.geometry.dispose();
+  plane.geometry = new THREE.PlaneGeometry(newWidth, planeHeight);
 });
 
 // =================================================================

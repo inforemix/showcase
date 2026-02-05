@@ -22,6 +22,9 @@ body {
   font-family: var(--font);
   overflow: hidden;
   cursor: crosshair;
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
 }
 
 /* --- THREE.JS CANVAS --- */
@@ -169,67 +172,13 @@ body {
   font-weight: 800;
   line-height: 0.9;
   margin: 0;
-  color: transparent;
-  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.8);
-  text-stroke: 2px rgba(255, 255, 255, 0.8);
+  color: #fff;
   letter-spacing: -0.02em;
   position: relative;
-  animation: glitch-text 5s infinite;
   transform-style: preserve-3d;
   transition: transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
-}
-
-.hyper-text::before,
-.hyper-text::after {
-  content: attr(data-text);
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  color: transparent;
-}
-
-.hyper-text::before {
-  left: 2px;
-  text-shadow: -2px 0 var(--accent);
-  -webkit-text-stroke: 0;
-  clip: rect(44px, 450px, 56px, 0);
-  animation: glitch-anim-2 3s infinite linear alternate-reverse;
-}
-
-.hyper-text::after {
-  left: -2px;
-  text-shadow: 2px 0 #ff003c;
-  -webkit-text-stroke: 0;
-  clip: rect(44px, 450px, 56px, 0);
-  animation: glitch-anim-3 2s infinite linear alternate-reverse;
-}
-
-@keyframes glitch-text {
-  0%, 95%, 100% { opacity: 1; }
-  96% { opacity: 0.8; }
-  97% { opacity: 0.2; }
-  98% { opacity: 0.9; }
-}
-
-@keyframes glitch-anim-2 {
-  0% { clip: rect(10px, 9999px, 80px, 0); }
-  20% { clip: rect(70px, 9999px, 20px, 0); }
-  40% { clip: rect(90px, 9999px, 60px, 0); }
-  60% { clip: rect(30px, 9999px, 50px, 0); }
-  80% { clip: rect(50px, 9999px, 90px, 0); }
-  100% { clip: rect(40px, 9999px, 70px, 0); }
-}
-
-@keyframes glitch-anim-3 {
-  0% { clip: rect(65px, 9999px, 15px, 0); }
-  20% { clip: rect(25px, 9999px, 75px, 0); }
-  40% { clip: rect(85px, 9999px, 35px, 0); }
-  60% { clip: rect(45px, 9999px, 95px, 0); }
-  80% { clip: rect(55px, 9999px, 5px, 0); }
-  100% { clip: rect(35px, 9999px, 65px, 0); }
+  text-shadow: 0 0 30px rgba(0, 229, 255, 0.5);
 }
 
 /* --- GLASS LIQUID BUTTON --- */
@@ -240,10 +189,10 @@ body {
   justify-content: center;
   gap: 10px;
   padding: 18px 48px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--accent);
   border-radius: 60px;
   color: #fff;
   font-family: var(--font);
@@ -253,25 +202,24 @@ body {
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   transform-style: preserve-3d;
   pointer-events: auto;
+  box-shadow:
+    0 0 20px rgba(0, 229, 255, 0.5),
+    inset 0 0 20px rgba(0, 229, 255, 0.1);
 }
 
 .glass-btn::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: -4px;
   border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0) 50%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
+  border: 2px solid var(--accent);
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: all 0.3s ease;
+  animation: glitch-outline 3s infinite;
 }
 
 .glass-btn::after {
@@ -301,8 +249,32 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+@keyframes glitch-outline {
+  0%, 90%, 100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  91% {
+    opacity: 1;
+    transform: translate(-2px, -2px);
+  }
+  92% {
+    opacity: 1;
+    transform: translate(2px, 2px);
+  }
+  93% {
+    opacity: 1;
+    transform: translate(-2px, 2px);
+  }
+  94% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+}
+
 .glass-btn:hover::before {
   opacity: 1;
+  animation: glitch-outline 1.5s infinite;
 }
 
 .glass-btn:hover::after {
@@ -311,13 +283,13 @@ body {
 }
 
 .glass-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(0, 229, 255, 0.3);
+  background: rgba(0, 229, 255, 0.15);
+  border-color: var(--accent);
   transform: translateY(-3px);
   box-shadow:
-    0 10px 40px rgba(0, 229, 255, 0.2),
-    0 0 80px rgba(0, 229, 255, 0.1),
-    inset 0 0 30px rgba(0, 229, 255, 0.05);
+    0 0 40px rgba(0, 229, 255, 0.8),
+    0 10px 60px rgba(0, 229, 255, 0.4),
+    inset 0 0 30px rgba(0, 229, 255, 0.2);
 }
 
 .glass-btn:active {
@@ -422,6 +394,19 @@ body {
 
 /* --- RESPONSIVE --- */
 @media (max-width: 768px) {
+  body {
+    overflow: hidden;
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #webgl-canvas {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+  }
+
   .hud {
     inset: 1rem;
     font-size: 8px;
@@ -432,13 +417,13 @@ body {
   }
 
   .hyper-text {
-    font-size: clamp(50px, 12vw, 100px);
-    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.15);
+    font-size: clamp(40px, 10vw, 80px);
   }
 
   #project-info {
-    padding: 1.5rem;
+    padding: 1rem;
     max-width: 100%;
+    gap: 2rem;
   }
 
   #nav {
