@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HYPER PORTFOLIO // BRUTAL MODE</title>
     <script src="https://unpkg.com/three@0.157.0/build/three.min.js"></script>
-    <script src="https://unpkg.com/@studio-freight/lenis@1.0.33/dist/lenis.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
@@ -30,120 +29,66 @@
             <span>FPS: <strong id="fps">60</strong></span>
         </div>
         <div class="center-nav">
-            SCROLL VELOCITY // <strong id="vel-readout">0.00</strong>
+            TRANSITION // <strong id="transition-mode">LIQUID MORPH</strong>
         </div>
         <div class="hud-bottom">
-            <span>COORD: <strong id="coord">000.000</strong></span>
+            <span>SYSTEM: <strong>CAROUSEL.ACTIVE</strong></span>
             <div class="hud-line"></div>
-            <span>TRANSITION: <strong id="transition-mode">STANDBY</strong></span>
+            <span>VER 3.0.1 [HYPER]</span>
         </div>
     </div>
 
-    <!-- 3D World Container -->
-    <div class="world-container" id="world-container">
-        <!-- 3D Text elements will be added via JS -->
-    </div>
+    <!-- UI Container -->
+    <div id="ui">
+        <!-- Slide Counter -->
+        <div id="slide-counter">
+            <span id="current-num">01</span>
+            <span class="divider">/</span>
+            <span id="total-num">03</span>
+        </div>
 
-    <!-- CONTENT -->
-    <div class="content">
-        <!-- Project Showcases -->
-        <section class="project-showcase" data-project="0" data-transition="liquid">
-            <div class="showcase-bg">
-                <img src="https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=1920&h=1080&fit=crop" alt="WriteQuest" class="showcase-image">
-                <div class="showcase-overlay"></div>
-            </div>
-            <div class="showcase-content">
-                <div class="showcase-header">
-                    <span class="showcase-id">PROJECT-001</span>
-                    <span class="showcase-status">ACTIVE</span>
-                </div>
-                <h2 class="showcase-title">WRITEQUEST</h2>
-                <p class="showcase-description">
-                    Creative writing platform with AI-powered assistance, real-time collaboration,
-                    and immersive storytelling tools for modern authors.
-                </p>
-                <div class="showcase-tags">
-                    <span class="tag">CREATIVE</span>
-                    <span class="tag">AI</span>
-                    <span class="tag">COLLAB</span>
-                </div>
-                <a href="https://writequest.netlify.app/" target="_blank" class="liquid-glass-btn">
-                    <span class="liquid-layer"></span>
-                    <span class="btn-content">
-                        <span class="btn-text">VIEW WORK</span>
-                        <span class="btn-icon">→</span>
-                    </span>
-                </a>
-            </div>
-        </section>
+        <!-- Navigation Buttons -->
+        <div id="nav">
+            <button class="nav-btn" id="prev-btn" aria-label="Previous">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <button class="nav-btn" id="next-btn" aria-label="Next">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M8 4L14 10L8 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
 
-        <section class="project-showcase" data-project="1" data-transition="quantum">
-            <div class="showcase-bg">
-                <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1920&h=1080&fit=crop" alt="Newton's Bounce" class="showcase-image">
-                <div class="showcase-overlay"></div>
+        <!-- Project Info Overlay -->
+        <div id="project-info">
+            <div class="project-header">
+                <span class="project-id" id="project-id">PROJECT-001</span>
+                <span class="project-status" id="project-status">ACTIVE</span>
             </div>
-            <div class="showcase-content">
-                <div class="showcase-header">
-                    <span class="showcase-id">PROJECT-002</span>
-                    <span class="showcase-status">LIVE</span>
-                </div>
-                <h2 class="showcase-title">NEWTON'S BOUNCE</h2>
-                <p class="showcase-description">
-                    Interactive physics simulation game with WebGL rendering,
-                    realistic particle dynamics, and engaging gameplay mechanics.
-                </p>
-                <div class="showcase-tags">
-                    <span class="tag">WEBGL</span>
-                    <span class="tag">PHYSICS</span>
-                    <span class="tag">GAME</span>
-                </div>
-                <a href="https://newtonsbounce.netlify.app" target="_blank" class="liquid-glass-btn">
-                    <span class="liquid-layer"></span>
-                    <span class="btn-content">
-                        <span class="btn-text">VIEW WORK</span>
-                        <span class="btn-icon">→</span>
-                    </span>
-                </a>
-            </div>
-        </section>
 
-        <section class="project-showcase" data-project="2" data-transition="spiral">
-            <div class="showcase-bg">
-                <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1920&h=1080&fit=crop" alt="InfoRelax" class="showcase-image">
-                <div class="showcase-overlay"></div>
-            </div>
-            <div class="showcase-content">
-                <div class="showcase-header">
-                    <span class="showcase-id">PROJECT-003</span>
-                    <span class="showcase-status">DEPLOYED</span>
-                </div>
-                <h2 class="showcase-title">INFORELAX</h2>
-                <p class="showcase-description">
-                    Relaxation and meditation platform with ambient soundscapes,
-                    guided sessions, and beautiful visual experiences for mindfulness.
-                </p>
-                <div class="showcase-tags">
-                    <span class="tag">WELLNESS</span>
-                    <span class="tag">AUDIO</span>
-                    <span class="tag">UX</span>
-                </div>
-                <a href="https://inforelax.netlify.app" target="_blank" class="liquid-glass-btn">
-                    <span class="liquid-layer"></span>
-                    <span class="btn-content">
-                        <span class="btn-text">VIEW WORK</span>
-                        <span class="btn-icon">→</span>
-                    </span>
-                </a>
-            </div>
-        </section>
+            <h1 class="hyper-text" id="project-title" data-text="WRITEQUEST">WRITEQUEST</h1>
 
-        <!-- Footer -->
-        <section class="footer">
-            <div class="footer-content">
-                <div class="footer-glitch" data-text="END_TRANSMISSION">END_TRANSMISSION</div>
-                <p class="footer-text">SYSTEM.SHUTDOWN // AWAITING NEXT COMMAND</p>
+            <p class="project-description" id="project-description">
+                Creative writing platform with AI-powered assistance, real-time collaboration,
+                and immersive storytelling tools for modern authors.
+            </p>
+
+            <div class="project-tags" id="project-tags">
+                <span class="tag">CREATIVE</span>
+                <span class="tag">AI</span>
+                <span class="tag">COLLAB</span>
             </div>
-        </section>
+
+            <a href="https://writequest.netlify.app/" target="_blank" class="glass-btn" id="project-link">
+                <span class="btn-glow"></span>
+                <span class="btn-text">VIEW WORK</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 8H12M12 8L8 4M12 8L8 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+        </div>
     </div>
 
     <script src="script.js"></script>

@@ -1,590 +1,530 @@
-// ======================
-// GLSL SHADER TRANSITIONS
-// ======================
+// =================================================================
+//  PROJECT DATA
+// =================================================================
 
-const SHADERS = {
-    // Liquid Morph Transition
-    liquidMorph: {
-        vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                vUv = uv;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            uniform sampler2D tDiffuse;
-            uniform float progress;
-            uniform vec2 resolution;
-            varying vec2 vUv;
+const projects = [
+  {
+    id: 'PROJECT-001',
+    status: 'ACTIVE',
+    title: 'WRITEQUEST',
+    description: 'Creative writing platform with AI-powered assistance, real-time collaboration, and immersive storytelling tools for modern authors.',
+    tags: ['CREATIVE', 'AI', 'COLLAB'],
+    url: 'https://writequest.netlify.app/',
+    image: 'images/WriteQuest.jpg'
+  },
+  {
+    id: 'PROJECT-002',
+    status: 'LIVE',
+    title: 'NEWTON\'S BOUNCE',
+    description: 'Interactive physics simulation game with WebGL rendering, realistic particle dynamics, and engaging gameplay mechanics.',
+    tags: ['WEBGL', 'PHYSICS', 'GAME'],
+    url: 'https://newtonsbounce.netlify.app',
+    image: 'images/Bounce.jpg'
+  },
+  {
+    id: 'PROJECT-003',
+    status: 'DEPLOYED',
+    title: 'INFORELAX',
+    description: 'Relaxation and meditation platform with ambient soundscapes, guided sessions, and beautiful visual experiences for mindfulness.',
+    tags: ['WELLNESS', 'AUDIO', 'UX'],
+    url: 'https://inforelax.netlify.app',
+    image: 'images/InfoRelax.jpg'
+  }
+];
 
-            // Noise function
-            float random(vec2 st) {
-                return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-            }
+// =================================================================
+//  GLSL SHADER COMMON CODE
+// =================================================================
 
-            void main() {
-                vec2 uv = vUv;
-                float noise = random(uv * 10.0 + progress) * 0.1;
+const glslCommon = /* glsl */`
+#define PI 3.14159265359
 
-                // Liquid distortion
-                float dist = length(uv - 0.5);
-                float angle = atan(uv.y - 0.5, uv.x - 0.5);
-                float ripple = sin(dist * 20.0 - progress * 10.0) * 0.1 * (1.0 - progress);
+uniform sampler2D uFrom;
+uniform sampler2D uTo;
+uniform vec2 uResolution;
+uniform vec2 uFromSize;
+uniform vec2 uToSize;
+uniform float uProgress;
+uniform float uTime;
+uniform float uDirection;
 
-                vec2 distortedUv = uv + vec2(
-                    cos(angle) * ripple,
-                    sin(angle) * ripple
-                );
+varying vec2 vUv;
 
-                vec4 color = texture2D(tDiffuse, distortedUv + noise);
-                color.rgb = mix(color.rgb, vec3(1.0), progress * 0.3);
+// FBM Noise
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
 
-                gl_FragColor = color;
-            }
-        `
-    },
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
 
-    // Quantum Glitch Transition
-    quantumGlitch: {
-        vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                vUv = uv;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            uniform sampler2D tDiffuse;
-            uniform float progress;
-            uniform float time;
-            varying vec2 vUv;
+float fbm(vec2 p) {
+  float value = 0.0;
+  float amplitude = 0.5;
+  for(int i = 0; i < 5; i++) {
+    value += amplitude * noise(p);
+    p *= 2.0;
+    amplitude *= 0.5;
+  }
+  return value;
+}
 
-            float random(vec2 st) {
-                return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-            }
+// Cover fit function
+vec2 coverFit(vec2 uv, vec2 container, vec2 content) {
+  float containerAspect = container.x / container.y;
+  float contentAspect = content.x / content.y;
+  vec2 scale = vec2(1.0);
+  vec2 offset = vec2(0.0);
 
-            void main() {
-                vec2 uv = vUv;
+  if(containerAspect > contentAspect) {
+    scale.y = containerAspect / contentAspect;
+    offset.y = (1.0 - scale.y) * 0.5;
+  } else {
+    scale.x = contentAspect / containerAspect;
+    offset.x = (1.0 - scale.x) * 0.5;
+  }
 
-                // Glitch blocks
-                float blocks = 15.0;
-                float blockY = floor(uv.y * blocks) / blocks;
-                float glitchStrength = step(0.5, random(vec2(blockY, time * 0.1))) * progress;
+  return (uv - offset) / scale;
+}
 
-                // RGB split
-                float offset = glitchStrength * 0.1;
-                vec4 rColor = texture2D(tDiffuse, uv + vec2(offset, 0.0));
-                vec4 gColor = texture2D(tDiffuse, uv);
-                vec4 bColor = texture2D(tDiffuse, uv - vec2(offset, 0.0));
+// RGB split sampling
+vec4 sampleRGB(sampler2D tex, vec2 uv, float offset) {
+  float r = texture2D(tex, uv + vec2(offset, 0.0)).r;
+  float g = texture2D(tex, uv).g;
+  float b = texture2D(tex, uv - vec2(offset, 0.0)).b;
+  return vec4(r, g, b, 1.0);
+}
 
-                vec4 color = vec4(rColor.r, gColor.g, bColor.b, 1.0);
+// Grain
+float grain(vec2 uv, float time) {
+  return (hash(uv * time) - 0.5) * 0.03;
+}
 
-                // Horizontal displacement
-                float displacement = (random(vec2(blockY, time)) - 0.5) * glitchStrength * 0.3;
-                color = texture2D(tDiffuse, vec2(uv.x + displacement, uv.y));
+// Vignette
+float vignette(vec2 uv) {
+  float dist = distance(uv, vec2(0.5));
+  return 1.0 - smoothstep(0.3, 0.9, dist);
+}
+`;
 
-                // Digital artifacts
-                if (random(vec2(blockY, time)) > 0.9) {
-                    color.rgb = mix(color.rgb, vec3(0.0, 1.0, 1.0), glitchStrength);
-                }
+// =================================================================
+//  TRANSITION SHADERS (5 different effects)
+// =================================================================
 
-                gl_FragColor = color;
-            }
-        `
-    },
+const transitionShaders = [
+  // 1. Liquid Morph
+  /* glsl */ `${glslCommon}
+  void main() {
+    float t = uProgress;
+    vec2 uv = vUv;
+    float peak = sin(t * PI);
 
-    // Spiral Vortex Transition
-    spiralVortex: {
-        vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                vUv = uv;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            uniform sampler2D tDiffuse;
-            uniform float progress;
-            uniform vec2 resolution;
-            varying vec2 vUv;
+    vec2 disp = vec2(
+      fbm(uv * 5.0 + uTime * 0.5),
+      fbm(uv * 5.0 + uTime * 0.5 + vec2(50.0))
+    ) - 0.5;
 
-            void main() {
-                vec2 uv = vUv;
-                vec2 center = vec2(0.5, 0.5);
-                vec2 toCenter = center - uv;
-                float dist = length(toCenter);
-                float angle = atan(toCenter.y, toCenter.x);
+    float strength = peak * 0.1;
+    vec2 uvFrom = uv + disp * strength;
+    vec2 uvTo = uv - disp * strength * 0.5;
 
-                // Spiral effect
-                float spiralStrength = progress * 3.14159 * 4.0;
-                float spiralAngle = angle + dist * spiralStrength;
+    vec2 fcUV = coverFit(uvFrom, uResolution, uFromSize);
+    vec2 tcUV = coverFit(uvTo, uResolution, uToSize);
 
-                vec2 spiralUv = center + dist * vec2(cos(spiralAngle), sin(spiralAngle));
+    float rgbSplit = peak * 0.012;
+    vec4 fromC = sampleRGB(uFrom, fcUV, rgbSplit);
+    vec4 toC = sampleRGB(uTo, tcUV, rgbSplit);
 
-                // Vortex distortion
-                float vortex = progress * dist * 2.0;
-                spiralUv = mix(uv, spiralUv, smoothstep(0.0, 1.0, progress));
+    float n = fbm(uv * 4.0 + uTime * 0.3);
+    float dissolve = smoothstep(t - 0.15, t + 0.15, n * 0.5 + uv.x * 0.5);
 
-                vec4 color = texture2D(tDiffuse, spiralUv);
+    vec4 color = mix(fromC, toC, dissolve);
+    color.rgb += grain(uv, uTime);
+    color.rgb *= vignette(uv);
+    gl_FragColor = color;
+  }`,
 
-                // Color shift
-                color.rgb += vec3(
-                    sin(dist * 10.0 - progress * 5.0) * 0.2,
-                    cos(dist * 10.0 - progress * 5.0) * 0.2,
-                    sin(dist * 15.0 - progress * 7.0) * 0.2
-                );
+  // 2. Directional Wipe
+  /* glsl */ `${glslCommon}
+  void main() {
+    float t = uProgress;
+    vec2 uv = vUv;
+    float peak = sin(t * PI);
 
-                gl_FragColor = color;
-            }
-        `
-    }
-};
+    vec2 uvFrom = uv;
+    vec2 uvTo = uv;
 
-// ======================
-// THREE.JS SCENE SETUP
-// ======================
+    vec2 fcUV = coverFit(uvFrom, uResolution, uFromSize);
+    vec2 tcUV = coverFit(uvTo, uResolution, uToSize);
+
+    float rgbSplit = peak * 0.015;
+    vec4 fromC = sampleRGB(uFrom, fcUV, rgbSplit);
+    vec4 toC = sampleRGB(uTo, tcUV, rgbSplit);
+
+    float wipe = smoothstep(t - 0.1, t + 0.1, uv.x + uDirection * 0.2);
+
+    vec4 color = mix(fromC, toC, wipe);
+    color.rgb += grain(uv, uTime);
+    color.rgb *= vignette(uv);
+    gl_FragColor = color;
+  }`,
+
+  // 3. Radial Zoom
+  /* glsl */ `${glslCommon}
+  void main() {
+    float t = uProgress;
+    vec2 uv = vUv;
+    float peak = sin(t * PI);
+
+    vec2 center = vec2(0.5);
+    vec2 delta = uv - center;
+    float dist = length(delta);
+
+    float zoom = 1.0 + peak * 0.15;
+    vec2 uvFrom = center + delta * zoom;
+    vec2 uvTo = center + delta / zoom;
+
+    vec2 fcUV = coverFit(uvFrom, uResolution, uFromSize);
+    vec2 tcUV = coverFit(uvTo, uResolution, uToSize);
+
+    float rgbSplit = peak * 0.01;
+    vec4 fromC = sampleRGB(uFrom, fcUV, rgbSplit);
+    vec4 toC = sampleRGB(uTo, tcUV, rgbSplit);
+
+    float dissolve = smoothstep(t * 1.2 - 0.15, t * 1.2 + 0.15, dist);
+
+    vec4 color = mix(fromC, toC, dissolve);
+    color.rgb += grain(uv, uTime);
+    color.rgb *= vignette(uv);
+    gl_FragColor = color;
+  }`,
+
+  // 4. Wave Ripple
+  /* glsl */ `${glslCommon}
+  void main() {
+    float t = uProgress;
+    vec2 uv = vUv;
+    float peak = sin(t * PI);
+
+    vec2 center = vec2(0.5);
+    float dist = distance(uv, center);
+
+    float wave = sin(dist * 20.0 - t * 8.0) * peak * 0.02;
+    wave *= (1.0 - smoothstep(0.0, 0.6, dist));
+
+    vec2 waveDir = normalize(uv - center + 0.001);
+    vec2 uvFrom = uv + waveDir * wave;
+    vec2 uvTo = uv - waveDir * wave * 0.5;
+
+    vec2 fcUV = coverFit(uvFrom, uResolution, uFromSize);
+    vec2 tcUV = coverFit(uvTo, uResolution, uToSize);
+
+    float rgbSplit = peak * 0.01;
+    vec4 fromC = sampleRGB(uFrom, fcUV, rgbSplit);
+    vec4 toC = sampleRGB(uTo, tcUV, rgbSplit);
+
+    float dissolve = smoothstep(t - 0.1, t + 0.1, dist);
+
+    vec4 color = mix(fromC, toC, dissolve);
+    color.rgb += grain(uv, uTime);
+    color.rgb *= vignette(uv);
+    gl_FragColor = color;
+  }`,
+
+  // 5. Smoke Dissolve
+  /* glsl */ `${glslCommon}
+  void main() {
+    float t = uProgress;
+    vec2 uv = vUv;
+    float peak = sin(t * PI);
+
+    vec2 smokeUV = uv;
+    smokeUV.y -= uTime * 0.25;
+    float smoke = fbm(smokeUV * 3.0);
+
+    vec2 warp = vec2(
+      fbm(uv * 4.0 + uTime * 0.3),
+      fbm(uv * 4.0 + uTime * 0.3 + vec2(50.0))
+    ) - 0.5;
+
+    vec2 uvFrom = uv + warp * peak * 0.05;
+    vec2 uvTo = uv - warp * peak * 0.02;
+
+    vec2 fcUV = coverFit(uvFrom, uResolution, uFromSize);
+    vec2 tcUV = coverFit(uvTo, uResolution, uToSize);
+
+    float rgbSplit = peak * 0.01;
+    vec4 fromC = sampleRGB(uFrom, fcUV, rgbSplit);
+    vec4 toC = sampleRGB(uTo, tcUV, rgbSplit);
+
+    float dissolve = smoothstep(t - 0.1, t + smoke * 0.15, smoke);
+
+    vec4 color = mix(fromC, toC, dissolve);
+    color.rgb += grain(uv, uTime);
+    color.rgb *= vignette(uv);
+    gl_FragColor = color;
+  }`
+];
+
+const transitionNames = [
+  'LIQUID MORPH',
+  'DIRECTIONAL WIPE',
+  'RADIAL ZOOM',
+  'WAVE RIPPLE',
+  'SMOKE DISSOLVE'
+];
+
+// =================================================================
+//  THREE.JS SETUP
+// =================================================================
 
 const canvas = document.getElementById('webgl-canvas');
 const scene = new THREE.Scene();
 
-// Camera
 const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
 );
-camera.position.z = 50;
+camera.position.z = 2;
 
-// Renderer
 const renderer = new THREE.WebGLRenderer({
-    canvas: canvas,
-    antialias: true,
-    alpha: true
+  canvas: canvas,
+  antialias: true,
+  alpha: true
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-// ======================
-// PARTICLE SYSTEM
-// ======================
+// =================================================================
+//  TEXTURE LOADER
+// =================================================================
 
-const particleCount = 1500;
-const particlesGeometry = new THREE.BufferGeometry();
-const particlesPositions = new Float32Array(particleCount * 3);
-const particlesVelocities = new Float32Array(particleCount * 3);
-const particlesColors = new Float32Array(particleCount * 3);
+const textureLoader = new THREE.TextureLoader();
+const textures = {};
 
-const colors = [
-    new THREE.Color(0xff003c),
-    new THREE.Color(0x00f3ff),
-    new THREE.Color(0xccff00),
-    new THREE.Color(0xffffff)
-];
-
-for (let i = 0; i < particleCount; i++) {
-    const i3 = i * 3;
-    particlesPositions[i3] = (Math.random() - 0.5) * 200;
-    particlesPositions[i3 + 1] = (Math.random() - 0.5) * 200;
-    particlesPositions[i3 + 2] = (Math.random() - 0.5) * 100;
-
-    particlesVelocities[i3] = (Math.random() - 0.5) * 0.02;
-    particlesVelocities[i3 + 1] = (Math.random() - 0.5) * 0.02;
-    particlesVelocities[i3 + 2] = Math.random() * 0.05 + 0.02;
-
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    particlesColors[i3] = color.r;
-    particlesColors[i3 + 1] = color.g;
-    particlesColors[i3 + 2] = color.b;
+function loadTextures() {
+  projects.forEach((project, index) => {
+    textures[index] = textureLoader.load(project.image);
+  });
 }
 
-particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlesPositions, 3));
-particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particlesColors, 3));
+loadTextures();
 
-const particlesMaterial = new THREE.PointsMaterial({
-    size: 0.8,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.8,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
+// =================================================================
+//  TRANSITION PLANE
+// =================================================================
+
+const geometry = new THREE.PlaneGeometry(4, 4);
+
+const vertexShader = /* glsl */`
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+let transitionMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    uFrom: { value: null },
+    uTo: { value: null },
+    uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+    uFromSize: { value: new THREE.Vector2(1920, 1080) },
+    uToSize: { value: new THREE.Vector2(1920, 1080) },
+    uProgress: { value: 0 },
+    uTime: { value: 0 },
+    uDirection: { value: 1 }
+  },
+  vertexShader: vertexShader,
+  fragmentShader: transitionShaders[0]
 });
 
-const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-scene.add(particles);
+const plane = new THREE.Mesh(geometry, transitionMaterial);
+scene.add(plane);
 
-// ======================
-// 3D TEXT ELEMENTS
-// ======================
-
-const worldContainer = document.getElementById('world-container');
-const textElements = [];
-const projectTitles = ['WRITEQUEST', 'NEWTON\'S BOUNCE', 'INFORELAX'];
-
-projectTitles.forEach((title, index) => {
-    const textEl = document.createElement('div');
-    textEl.className = 'text-3d';
-    textEl.textContent = title;
-    textEl.style.zIndex = index;
-    worldContainer.appendChild(textEl);
-
-    textElements.push({
-        el: textEl,
-        index: index,
-        baseZ: -index * 2000
-    });
-});
-
-// ======================
-// WIREFRAME SHAPES
-// ======================
-
-const shapes = [];
-
-for (let i = 0; i < 3; i++) {
-    const geometry = new THREE.TorusGeometry(5 + i * 2, 1, 16, 100);
-    const edges = new THREE.EdgesGeometry(geometry);
-    const material = new THREE.LineBasicMaterial({
-        color: colors[i % colors.length],
-        transparent: true,
-        opacity: 0.3
-    });
-    const wireframe = new THREE.LineSegments(edges, material);
-
-    wireframe.position.set(
-        (Math.random() - 0.5) * 40,
-        (Math.random() - 0.5) * 40,
-        (Math.random() - 0.5) * 20
-    );
-
-    shapes.push(wireframe);
-    scene.add(wireframe);
-}
-
-// ======================
-// STATE MANAGEMENT
-// ======================
+// =================================================================
+//  CAROUSEL STATE
+// =================================================================
 
 const state = {
-    scroll: 0,
-    velocity: 0,
-    targetSpeed: 0,
-    mouseX: 0,
-    mouseY: 0,
-    time: 0,
-    currentSection: 0,
-    transitionProgress: 0,
-    isTransitioning: false,
-    transitionType: 'liquid'
+  currentIndex: 0,
+  nextIndex: 0,
+  isTransitioning: false,
+  transitionProgress: 0,
+  transitionDuration: 1.5,
+  currentShader: 0,
+  time: 0,
+  direction: 1
 };
 
-// ======================
-// SHADER TRANSITION SYSTEM
-// ======================
+// =================================================================
+//  UPDATE UI
+// =================================================================
 
-let transitionPlane, transitionMaterial;
+function updateUI(index) {
+  const project = projects[index];
 
-function initTransitionPlane() {
-    const geometry = new THREE.PlaneGeometry(200, 200);
-    transitionMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-            tDiffuse: { value: null },
-            progress: { value: 0.0 },
-            time: { value: 0.0 },
-            resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
-        },
-        vertexShader: SHADERS.liquidMorph.vertexShader,
-        fragmentShader: SHADERS.liquidMorph.fragmentShader,
-        transparent: true
-    });
+  document.getElementById('project-id').textContent = project.id;
+  document.getElementById('project-status').textContent = project.status;
+  document.getElementById('project-title').textContent = project.title;
+  document.getElementById('project-title').setAttribute('data-text', project.title);
+  document.getElementById('project-description').textContent = project.description;
+  document.getElementById('project-link').href = project.url;
 
-    transitionPlane = new THREE.Mesh(geometry, transitionMaterial);
-    transitionPlane.position.z = 10;
-    transitionPlane.visible = false;
-    scene.add(transitionPlane);
+  const tagsContainer = document.getElementById('project-tags');
+  tagsContainer.innerHTML = project.tags.map(tag =>
+    `<span class="tag">${tag}</span>`
+  ).join('');
+
+  document.getElementById('current-num').textContent = String(index + 1).padStart(2, '0');
 }
 
-initTransitionPlane();
+// =================================================================
+//  NAVIGATION
+// =================================================================
 
-function updateTransitionShader(type) {
-    const shader = SHADERS[type] || SHADERS.liquidMorph;
-    transitionMaterial.vertexShader = shader.vertexShader;
-    transitionMaterial.fragmentShader = shader.fragmentShader;
-    transitionMaterial.needsUpdate = true;
+function goToSlide(newIndex) {
+  if (state.isTransitioning) return;
+
+  state.nextIndex = newIndex;
+  state.isTransitioning = true;
+  state.transitionProgress = 0;
+
+  // Set textures
+  transitionMaterial.uniforms.uFrom.value = textures[state.currentIndex];
+  transitionMaterial.uniforms.uTo.value = textures[state.nextIndex];
+
+  // Pick random shader
+  state.currentShader = Math.floor(Math.random() * transitionShaders.length);
+  transitionMaterial.fragmentShader = transitionShaders[state.currentShader];
+  transitionMaterial.needsUpdate = true;
+
+  // Update HUD
+  document.getElementById('transition-mode').textContent = transitionNames[state.currentShader];
+
+  // Determine direction
+  state.direction = newIndex > state.currentIndex ? 1 : -1;
+  transitionMaterial.uniforms.uDirection.value = state.direction;
 }
 
-// ======================
-// MOUSE & SCROLL EVENTS
-// ======================
+function nextSlide() {
+  const newIndex = (state.currentIndex + 1) % projects.length;
+  goToSlide(newIndex);
+}
 
-window.addEventListener('mousemove', (e) => {
-    state.mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-    state.mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+function prevSlide() {
+  const newIndex = (state.currentIndex - 1 + projects.length) % projects.length;
+  goToSlide(newIndex);
+}
+
+// =================================================================
+//  EVENT LISTENERS
+// =================================================================
+
+document.getElementById('next-btn').addEventListener('click', nextSlide);
+document.getElementById('prev-btn').addEventListener('click', prevSlide);
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') nextSlide();
+  if (e.key === 'ArrowLeft') prevSlide();
 });
 
+// Auto advance (optional)
+let autoAdvanceInterval = setInterval(nextSlide, 8000);
+
+// Pause auto-advance on interaction
+['click', 'touchstart', 'keydown'].forEach(event => {
+  document.addEventListener(event, () => {
+    clearInterval(autoAdvanceInterval);
+    autoAdvanceInterval = setInterval(nextSlide, 8000);
+  });
+});
+
+// Window resize
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    transitionMaterial.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  transitionMaterial.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
 });
 
-// ======================
-// LENIS SMOOTH SCROLL
-// ======================
+// =================================================================
+//  FPS COUNTER
+// =================================================================
 
-const lenis = new Lenis({
-    smooth: true,
-    lerp: 0.08,
-    direction: 'vertical',
-    gestureDirection: 'vertical',
-    smoothTouch: true,
-    touchMultiplier: 2
-});
-
-lenis.on('scroll', ({ scroll, velocity }) => {
-    state.scroll = scroll;
-    state.targetSpeed = velocity;
-
-    // Calculate current section
-    const viewportHeight = window.innerHeight;
-    const newSection = Math.floor(scroll / viewportHeight);
-
-    if (newSection !== state.currentSection && newSection < 3) {
-        state.currentSection = newSection;
-
-        // Determine transition type
-        const transitionTypes = ['liquidMorph', 'quantumGlitch', 'spiralVortex'];
-        const transitionNames = ['LIQUID', 'QUANTUM', 'SPIRAL'];
-        state.transitionType = transitionTypes[newSection % 3];
-
-        // Update HUD
-        document.getElementById('transition-mode').textContent = transitionNames[newSection % 3];
-
-        updateTransitionShader(state.transitionType);
-    }
-});
-
-// ======================
-// HUD UPDATES
-// ======================
-
-const feedbackVel = document.getElementById('vel-readout');
 const feedbackFPS = document.getElementById('fps');
-const feedbackCoord = document.getElementById('coord');
 let lastTime = 0;
 let frameCount = 0;
 let fpsTime = 0;
 
-// ======================
-// ANIMATION LOOP
-// ======================
+// =================================================================
+//  ANIMATION LOOP
+// =================================================================
 
 function animate(time) {
-    lenis.raf(time);
+  requestAnimationFrame(animate);
 
-    const deltaTime = time - lastTime;
-    lastTime = time;
-    state.time = time * 0.001;
+  // Time tracking
+  const deltaTime = time - lastTime;
+  lastTime = time;
+  state.time = time * 0.001;
 
-    // FPS Calculation
-    frameCount++;
-    fpsTime += deltaTime;
-    if (fpsTime >= 1000) {
-        feedbackFPS.innerText = Math.round(frameCount);
-        frameCount = 0;
-        fpsTime = 0;
+  // FPS calculation
+  frameCount++;
+  fpsTime += deltaTime;
+  if (fpsTime >= 1000) {
+    feedbackFPS.innerText = Math.round(frameCount);
+    frameCount = 0;
+    fpsTime = 0;
+  }
+
+  // Update shader time
+  transitionMaterial.uniforms.uTime.value = state.time;
+
+  // Transition logic
+  if (state.isTransitioning) {
+    state.transitionProgress += deltaTime / (state.transitionDuration * 1000);
+
+    if (state.transitionProgress >= 1) {
+      state.transitionProgress = 1;
+      state.isTransitioning = false;
+      state.currentIndex = state.nextIndex;
+      updateUI(state.currentIndex);
     }
 
-    // Smooth velocity
-    state.velocity += (state.targetSpeed - state.velocity) * 0.1;
-
-    // HUD updates
-    feedbackVel.innerText = Math.abs(state.velocity).toFixed(2);
-    feedbackCoord.innerText = state.scroll.toFixed(1).padStart(7, '0');
-
-    // ======================
-    // CAMERA ANIMATION
-    // ======================
-
-    camera.position.x += (state.mouseX * 5 - camera.position.x) * 0.05;
-    camera.position.y += (-state.mouseY * 5 - camera.position.y) * 0.05;
-    camera.rotation.z = state.velocity * 0.0001;
-
-    // ======================
-    // 3D TEXT SCROLLING
-    // ======================
-
-    const scrollProgress = state.scroll * 2;
-
-    textElements.forEach((item, i) => {
-        const relZ = item.baseZ + scrollProgress;
-        const loopSize = 6000;
-
-        let vizZ = ((relZ % loopSize) + loopSize) % loopSize;
-        if (vizZ > 500) vizZ -= loopSize;
-
-        // Opacity
-        let alpha = 1;
-        if (vizZ < -3000) alpha = 0;
-        else if (vizZ < -2000) alpha = (vizZ + 3000) / 1000;
-        if (vizZ > 100) alpha = 1 - (vizZ - 100) / 400;
-        if (alpha < 0) alpha = 0;
-
-        item.el.style.opacity = alpha;
-
-        if (alpha > 0) {
-            const tiltX = state.mouseY * 5 - state.velocity * 0.3;
-            const tiltY = state.mouseX * 5;
-            const rotZ = Math.sin(state.time + i) * 2;
-
-            item.el.style.transform = `
-                translate(-50%, -50%)
-                translate3d(0, 0, ${vizZ}px)
-                rotateX(${tiltX}deg)
-                rotateY(${tiltY}deg)
-                rotateZ(${rotZ}deg)
-            `;
-
-            // Text shadow RGB split effect
-            if (Math.abs(state.velocity) > 1) {
-                const offset = state.velocity * 2;
-                item.el.style.textShadow = `${offset}px 0 red, ${-offset}px 0 cyan`;
-            } else {
-                item.el.style.textShadow = 'none';
-            }
-        }
-    });
-
-    // ======================
-    // PARTICLE ANIMATION
-    // ======================
-
-    const positions = particlesGeometry.attributes.position.array;
-
-    for (let i = 0; i < particleCount; i++) {
-        const i3 = i * 3;
-
-        positions[i3] += particlesVelocities[i3];
-        positions[i3 + 1] += particlesVelocities[i3 + 1];
-        positions[i3 + 2] += particlesVelocities[i3 + 2];
-        positions[i3 + 2] += state.velocity * 0.01;
-
-        if (positions[i3 + 2] > 50) {
-            positions[i3 + 2] = -50;
-            positions[i3] = (Math.random() - 0.5) * 200;
-            positions[i3 + 1] = (Math.random() - 0.5) * 200;
-        }
-
-        if (Math.abs(positions[i3]) > 100) particlesVelocities[i3] *= -1;
-        if (Math.abs(positions[i3 + 1]) > 100) particlesVelocities[i3 + 1] *= -1;
+    transitionMaterial.uniforms.uProgress.value = state.transitionProgress;
+  } else {
+    // Show current slide
+    if (!transitionMaterial.uniforms.uFrom.value) {
+      transitionMaterial.uniforms.uFrom.value = textures[state.currentIndex];
+      transitionMaterial.uniforms.uTo.value = textures[state.currentIndex];
     }
+  }
 
-    particlesGeometry.attributes.position.needsUpdate = true;
-    particles.rotation.y = state.time * 0.05;
-    particles.rotation.x = Math.sin(state.time * 0.1) * 0.1;
-
-    // ======================
-    // SHAPES ANIMATION
-    // ======================
-
-    shapes.forEach((shape, i) => {
-        shape.rotation.x = state.time * 0.2 + i;
-        shape.rotation.y = state.time * 0.3 + i;
-        shape.rotation.z = state.time * 0.1 + i;
-
-        shape.position.y += Math.sin(state.time + i) * 0.01;
-
-        const velocityEffect = state.velocity * 0.001;
-        shape.rotation.x += velocityEffect;
-        shape.rotation.y += velocityEffect;
-    });
-
-    // ======================
-    // FOV WARP
-    // ======================
-
-    const baseFov = 75;
-    const targetFov = baseFov + Math.min(Math.abs(state.velocity) * 0.5, 20);
-    camera.fov += (targetFov - camera.fov) * 0.1;
-    camera.updateProjectionMatrix();
-
-    // ======================
-    // SHADER TRANSITION
-    // ======================
-
-    if (transitionMaterial) {
-        transitionMaterial.uniforms.time.value = state.time;
-
-        // Calculate transition progress based on scroll between sections
-        const viewportHeight = window.innerHeight;
-        const sectionProgress = (state.scroll % viewportHeight) / viewportHeight;
-
-        if (sectionProgress < 0.2 || sectionProgress > 0.8) {
-            const progress = sectionProgress < 0.2 ? sectionProgress * 5 : (1 - sectionProgress) * 5;
-            transitionMaterial.uniforms.progress.value = progress * Math.abs(state.velocity) * 0.1;
-        } else {
-            transitionMaterial.uniforms.progress.value *= 0.95;
-        }
-    }
-
-    // ======================
-    // RENDER
-    // ======================
-
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
+  renderer.render(scene, camera);
 }
 
-// ======================
-// INITIALIZATION
-// ======================
+// =================================================================
+//  INITIALIZATION
+// =================================================================
 
-animate(0);
+function init() {
+  updateUI(0);
+  animate(0);
+  console.log('%c CAROUSEL INITIALIZED ', 'background: #00e5ff; color: #000; font-size: 20px; font-weight: bold; padding: 10px;');
+  console.log('%c 5 GLSL TRANSITIONS LOADED ', 'background: #ff003c; color: #fff; font-size: 14px; padding: 5px;');
+}
 
-window.addEventListener('load', () => {
-    window.scrollTo(0, 0);
-    lenis.scrollTo(0, { immediate: true });
-});
-
-// ======================
-// EFFECTS
-// ======================
-
-// Chromatic aberration on high velocity
-let chromaticInterval;
-window.addEventListener('scroll', () => {
-    if (Math.abs(state.velocity) > 10) {
-        if (!chromaticInterval) {
-            chromaticInterval = setInterval(() => {
-                canvas.style.filter = `hue-rotate(${Math.random() * 10}deg)`;
-            }, 50);
-        }
-    } else {
-        if (chromaticInterval) {
-            clearInterval(chromaticInterval);
-            chromaticInterval = null;
-            canvas.style.filter = 'none';
-        }
-    }
-});
-
-// Random glitch effect
-setInterval(() => {
-    if (Math.random() > 0.8) {
-        const showcases = document.querySelectorAll('.project-showcase');
-        const randomShowcase = showcases[Math.floor(Math.random() * showcases.length)];
-        if (randomShowcase) {
-            randomShowcase.style.animation = 'glitch-anim 0.2s';
-            setTimeout(() => {
-                randomShowcase.style.animation = '';
-            }, 200);
-        }
-    }
-}, 5000);
-
-// Console ASCII art
-console.log('%c SYSTEM INITIALIZED ', 'background: #ff003c; color: #000; font-size: 20px; font-weight: bold; padding: 10px;');
-console.log('%c HYPER PORTFOLIO // BRUTAL MODE ', 'background: #00f3ff; color: #000; font-size: 14px; padding: 5px;');
-console.log('%c GLSL TRANSITIONS ACTIVE ', 'background: #ccff00; color: #000; font-size: 12px; padding: 5px;');
+// Wait for textures to load
+setTimeout(init, 500);
