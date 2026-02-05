@@ -362,6 +362,58 @@ const plane = new THREE.Mesh(geometry, transitionMaterial);
 scene.add(plane);
 
 // =================================================================
+//  PARTICLE SYSTEM
+// =================================================================
+
+const particleCount = 800;
+const particlesGeometry = new THREE.BufferGeometry();
+const particlesPositions = new Float32Array(particleCount * 3);
+const particlesVelocities = new Float32Array(particleCount * 3);
+const particlesColors = new Float32Array(particleCount * 3);
+
+// Color palette: cyan, yellow, white
+const particleColors = [
+  new THREE.Color(0x00e5ff), // Cyan
+  new THREE.Color(0xccff00), // Yellow
+  new THREE.Color(0xffffff)  // White
+];
+
+for (let i = 0; i < particleCount; i++) {
+  const i3 = i * 3;
+
+  // Position
+  particlesPositions[i3] = (Math.random() - 0.5) * 50;
+  particlesPositions[i3 + 1] = (Math.random() - 0.5) * 50;
+  particlesPositions[i3 + 2] = (Math.random() - 0.5) * 10 + 5;
+
+  // Velocity
+  particlesVelocities[i3] = (Math.random() - 0.5) * 0.01;
+  particlesVelocities[i3 + 1] = (Math.random() - 0.5) * 0.01;
+  particlesVelocities[i3 + 2] = 0;
+
+  // Color
+  const color = particleColors[Math.floor(Math.random() * particleColors.length)];
+  particlesColors[i3] = color.r;
+  particlesColors[i3 + 1] = color.g;
+  particlesColors[i3 + 2] = color.b;
+}
+
+particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlesPositions, 3));
+particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particlesColors, 3));
+
+const particlesMaterial = new THREE.PointsMaterial({
+  size: 0.15,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.8,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false
+});
+
+const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+scene.add(particles);
+
+// =================================================================
 //  CAROUSEL STATE
 // =================================================================
 
@@ -373,7 +425,8 @@ const state = {
   transitionDuration: 1.5,
   currentShader: 0,
   time: 0,
-  direction: 1
+  direction: 1,
+  scrollVelocity: 0
 };
 
 // =================================================================
@@ -389,8 +442,9 @@ function updateUI(index) {
   document.getElementById('project-link').href = project.url;
   document.getElementById('current-num').textContent = String(index + 1).padStart(2, '0');
 
-  // Reset text transform
+  // Reset text transform and remove glitch
   titleEl.style.transform = 'scale(1) translateZ(0)';
+  titleEl.classList.remove('glitching');
 }
 
 // =================================================================
@@ -420,9 +474,10 @@ function goToSlide(newIndex) {
   state.direction = newIndex > state.currentIndex ? 1 : -1;
   transitionMaterial.uniforms.uDirection.value = state.direction;
 
-  // Animate title 3D zoom
+  // Animate title 3D zoom and add glitch effect
   const titleEl = document.getElementById('project-title');
   titleEl.style.transform = 'scale(1.5) translateZ(200px)';
+  titleEl.classList.add('glitching');
 }
 
 function nextSlide() {
@@ -453,6 +508,9 @@ let scrollTimeout;
 let lastScrollTime = 0;
 
 window.addEventListener('wheel', (e) => {
+  // Track scroll velocity for particles
+  state.scrollVelocity = e.deltaY * 0.01;
+
   if (state.isTransitioning) return;
 
   const now = Date.now();
@@ -565,6 +623,42 @@ function animate(time) {
       transitionMaterial.uniforms.uTo.value = textures[state.currentIndex];
     }
   }
+
+  // ======================
+  // PARTICLE ANIMATION
+  // ======================
+
+  const positions = particlesGeometry.attributes.position.array;
+
+  // Decay scroll velocity
+  state.scrollVelocity *= 0.95;
+
+  for (let i = 0; i < particleCount; i++) {
+    const i3 = i * 3;
+
+    // Update positions with velocity
+    positions[i3] += particlesVelocities[i3];
+    positions[i3 + 1] += particlesVelocities[i3 + 1];
+
+    // Add scroll influence
+    positions[i3 + 1] += state.scrollVelocity * 0.05;
+
+    // Boundary check and wrap
+    if (Math.abs(positions[i3]) > 25) {
+      particlesVelocities[i3] *= -1;
+    }
+    if (Math.abs(positions[i3 + 1]) > 25) {
+      particlesVelocities[i3 + 1] *= -1;
+    }
+
+    // Gentle float animation
+    positions[i3 + 1] += Math.sin(state.time + i * 0.1) * 0.002;
+  }
+
+  particlesGeometry.attributes.position.needsUpdate = true;
+
+  // Rotate particles slightly
+  particles.rotation.z = Math.sin(state.time * 0.1) * 0.05;
 
   renderer.render(scene, camera);
 }
